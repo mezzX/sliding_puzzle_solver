@@ -3,8 +3,15 @@ import math
 import copy
 import numpy as np
 
+def mk_string(board):
+    s = ''
+    for n in np.nditer(board):
+        s += str(int(n))
+
+    return s
+
 class PuzzleSolver():
-    def __init(self, size):
+    def __init__(self):
         self.frontier = {}
         self.explored = {}
 
@@ -26,7 +33,7 @@ class PuzzleSolver():
             # correct tile position
             r_loc = tile.cor_pos
             self.puzzle[c_loc[0]][c_loc[1]] = self.answer[r_loc[0]][r_loc[1]]
-        self.frontier[self.puzzle] = [self.score_board(self.puzzle), []]
+        self.frontier[mk_string(self.puzzle)] = [self.score_board(self.puzzle), [], self.puzzle]
 
     def find_gap(self, board):
         coord = np.argmin(board)
@@ -53,12 +60,12 @@ class PuzzleSolver():
 
     def score_board(self, board):
         scores = []
-        for i in range(9):
+        for i in range(self.size**2):
            # current tile position
             c_loc = np.where(board == i)
             # correct tile position
             r_loc = np.where(self.answer == i)
-            #calculating Manhattan Distance
+            # calculating Manhattan Distance
             y = abs(c_loc[0] - r_loc[0])
             x = abs(c_loc[1] - r_loc[1])
             scores.append(y + x)
@@ -86,56 +93,42 @@ class PuzzleSolver():
 
         return new_board
 
-    def expand(self, board):
+    def expand(self, key):
+        board = self.frontier[key][2]
         actions = self.get_actions(board)
         for action in actions:
             new_board = self.sim_board(board, action)
-            score = self.score_board(new_board)
-            self.frontier[new_board] = [score, self.frontier[board][1]]
-            self.frontier[new_board][1].append(action)
-        self.explored[board] = self.frontier[board]
-        del self.frontier[board]
-
-    def eval_actions(self, state):
-        scores = {}
-        actions = self.get_actions(state)
-        for action in actions:
-            print(action)
-            board = self.sim_board(state, action)
-            score = self.score_board(board)
-            scores[action] = score
-
-        return scores
-
-    def choose_action(self, state):
-        self.import_puzzle(state)
-        actions = self.eval_actions(self.puzzle)
-        best_val = float('inf')
-        action = ''
-        for direction in actions.keys():
-            if actions[direction] < best_val:
-                action = direction
-                best_val = actions[direction]
-
-        print(actions)
-        print(action)
-
-        return action
+            new_board_key = mk_string(new_board)
+            if new_board_key not in self.frontier.keys() and new_board_key not in self.explored.keys():
+                score = self.score_board(new_board)
+                move_list = copy.copy(self.frontier[key][1])
+                self.frontier[new_board_key] = [score, move_list, new_board]
+                self.frontier[new_board_key][1].append(action)
+        if key not in self.explored.keys():
+            self.explored[key] = copy.deepcopy(self.frontier[key])
+        del self.frontier[key]
 
     def get_total_cost(self, entry):
-        #total path cost so far
+        # total path cost so far
         g = len(entry[1])
-        #estimated remaining path cost
-        h = entry[0]
+        # estimated remaining path cost
+        h = int(entry[0])
         return g + h
 
     def explore(self):
-        self.expand(min(self.frontier, key=lambda x:self.get_total_cost(x)))
+        boards = {}
+        for board in self.frontier.keys():
+            cost = self.get_total_cost(self.frontier[board])
+            boards[board] = cost
+        self.expand(min(boards))
+        #self.expand(min(self.frontier, key=lambda x:self.get_total_cost(x)))
 
     def solve(self, state):
         self.import_puzzle(state)
         while True:
-            if self.answer in self.explored.key():
-                return self.explored[self.answer][1]
+            if mk_string(self.answer) in self.explored.keys():
+                print(self.explored[mk_string(self.answer)])
+                return self.explored[mk_string(self.answer)][1]
             else:
                 self.explore()
+                print("{} nodes in the frontier and {} nodes explored".format(len(self.frontier.keys()), len(self.explored.keys())))

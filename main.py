@@ -137,8 +137,9 @@ class Board(Frame):
         self.bind_all('<Key-s>', self.solve)
 
     def solve(self, event):
-        actions = self.solver.choose_action(self.tiles)
-        self.tiles.slide(actions)
+        actions = self.solver.solve(self.tiles)
+        for action in actions:
+            root.after(500, self.tiles.slide(action))
         if self.tiles.is_correct():
             self.win(self.tiles.moves)
 
