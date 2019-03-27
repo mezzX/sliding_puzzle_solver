@@ -139,7 +139,8 @@ class Board(Frame):
     def solve(self, event):
         actions = self.solver.solve(self.tiles)
         for action in actions:
-            root.after(500, self.tiles.slide(action))
+            #root.after(500, self.tiles.slide(action))
+            self.tiles.slide(action)
         if self.tiles.is_correct():
             self.win(self.tiles.moves)
 
