@@ -191,7 +191,7 @@ class Puzzle():
         self.mainFrame.pack()
 
     def browse(self):
-        self.image.set(filedialog.askopenfilename(title='Select Image', filetype=(('png File','*.png'),('jpg File','*.jpg'))))
+        self.image.set(filedialog.askopenfilename(title='Select Image', filetypes=(('png File','*.png'),('jpg File','*.jpg'),)))
 
     def win(self, moves):
         self.board.pack_forget()
