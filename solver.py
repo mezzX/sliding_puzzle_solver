@@ -1,5 +1,4 @@
 import random
-import math
 import copy
 import numpy as np
 
@@ -11,13 +10,13 @@ def mk_string(board):
     return s
 
 class PuzzleSolver():
-    def __init__(self):
+    def __init__(self, size):
+        self.size = size
         self.frontier = {}
         self.explored = {}
+        self.mk_answer()
 
-    def import_puzzle(self, state):
-        self.size = int(math.sqrt(len(state.tiles)))
-        self.puzzle = np.zeros((self.size, self.size))
+    def mk_answer(self):
         self.answer = np.zeros((self.size, self.size))
         num = 1
         for r in range(self.size):
@@ -27,6 +26,8 @@ class PuzzleSolver():
 
         self.answer[-1][-1] = 0
 
+    def import_puzzle(self, state):        
+        self.puzzle = np.zeros((self.size, self.size))
         for tile in state.tiles:
             # current tile position
             c_loc = tile.pos
@@ -34,6 +35,23 @@ class PuzzleSolver():
             r_loc = tile.cor_pos
             self.puzzle[c_loc[0]][c_loc[1]] = self.answer[r_loc[0]][r_loc[1]]
         self.frontier[mk_string(self.puzzle)] = [self.score_board(self.puzzle), [], self.puzzle]
+
+    def shuffle(self, n):
+        prev_action = None
+        board = self.answer
+        tile_order = []
+        for _ in range(n):
+            actions = self.get_actions(board)
+            if prev_action in actions:
+                actions.pop(actions.index(prev_action))
+            action = random.choice(actions)
+            prev_action = action
+            board = self.sim_board(board, action)
+
+        for i in np.nditer(board):
+            tile_order.append(int(i))
+
+        return tile_order
 
     def find_gap(self, board):
         coord = np.argmin(board)

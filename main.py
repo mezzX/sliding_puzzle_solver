@@ -7,9 +7,10 @@ import os
 import solver
 
 class Tiles():
-    def __init__(self, grid):
+    def __init__(self, grid, solver):
         self.tiles = []
         self.grid = grid
+        self.solver = solver
         self.gap = None
         self.moves = 0
 
@@ -17,11 +18,11 @@ class Tiles():
         self.tiles.append(tile)
 
     def shuffle(self):
-        random.shuffle(self.tiles)
+        order = self.solver.shuffle(200)
         i = 0
         for row in range(self.grid):
             for col in range(self.grid):
-                self.tiles[i].pos = (row, col)
+                self.tiles[order[i] - 1].pos = (row, col)
                 i += 1
 
     def show(self):
@@ -96,7 +97,7 @@ class Board(Frame):
         self.grid = grid
         self.win = win
         self.restart = restart
-        self.solver = solver.PuzzleSolver()
+        self.solver = solver.PuzzleSolver(grid)
         self.image = self.open_image(image)
         self.tile_size = self.image.size[0] / self.grid
         self.tiles = self.create_tiles()
@@ -114,7 +115,7 @@ class Board(Frame):
         return image
 
     def create_tiles(self):
-        tiles = Tiles(self.grid)
+        tiles = Tiles(self.grid, self.solver)
         for row in range(self.grid):
             for col in range(self.grid):
                 x0 = col * self.tile_size
