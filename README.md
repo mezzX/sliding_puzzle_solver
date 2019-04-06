@@ -1,13 +1,14 @@
 # sliding_puzzle_solver
 A sliding puzzle solver using the A* algorithm
-# To do:
-Write a proper README.md<br>
-implement some sort of "pause" in between input from the agent so that the moves are visible<br>
+
 ### Getting Started
 1. Make sure you have [Python 3.6](https://www.python.org/) installed.
 
 2. Clone the repository
-
+    ```bash
+    git clone https://github.com/mezzX/sliding_puzzle_solver.git
+    ```
+    
 3. Use [Conda](https://conda.io/projects/conda/en/latest/user-guide/install/index.html) to create a new environment and install dependencies
 
     - __Linux__ or __Mac__: 
@@ -25,9 +26,9 @@ implement some sort of "pause" in between input from the agent so that the moves
     ```
 
 ### Instructions
-Navigate to the directory and run main.py
+Navigate to the directory and run puzzle.py
 
-    python main.py
+    python puzzle.py
 
 Click on Browse to select an image to be used for the puzzle tiles
 
