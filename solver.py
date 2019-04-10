@@ -19,6 +19,7 @@ def mk_string(board):
 
     return s
 
+
 class PuzzleSolver():
     def __init__(self, size):
         '''
@@ -78,7 +79,7 @@ class PuzzleSolver():
         '''
         self.frontier[mk_string(self.puzzle)] = [self.score_board(self.puzzle), [], self.puzzle]
 
-    def shuffle(self, n):
+    def shuffle(self, n, seed):
         '''
         Returns a random tile order by taking n number of random actions starting from the solution board.
         prev_action is used to make sure that no 2 consecutive moves cancel each other out.
@@ -86,7 +87,11 @@ class PuzzleSolver():
         Params
         ======
             n(int) : The number of random moves to generate before returning.
+            seed(int) : The seed used for shuffling the board. Only used if > 0.
         '''
+        
+        if seed > 0:
+            random.seed(seed)
         prev_action = None
         board = self.answer
         tile_order = []
@@ -230,6 +235,7 @@ class PuzzleSolver():
             if new_board_key not in self.frontier.keys() and new_board_key not in self.explored.keys():
                 score = self.score_board(new_board)
                 move_list = copy.copy(self.frontier[key][1])
+                # Adding the new board to the frontier
                 self.frontier[new_board_key] = [score, move_list, new_board]
                 self.frontier[new_board_key][1].append(action)
         # Adding the expanded board to explored and removing it from the frontier
