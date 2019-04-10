@@ -2,15 +2,8 @@
 
 [image1]: ./img/MainMenu.jpg "Main Menu"
 ### Heuristics Workshop
-This is the starter code for the Heuristics workshop. The first of a three part series focusing on traditional AI techniques.
-This session will focus on heuristics and we'll implement the A* algorithm to solve sliding puzzles!
-
-To successfully implement A* you will need to follow the instructions for the following PuzzleSolver class methods in solver.py:
-    
-    - score_board
-    - expand
-    - get_total_cost
-    - explore
+This is the solution for the Heuristics workshop code. The first of a three part series focusing on traditional AI techniques.
+This session we focused on heuristics and implemented the A* algorithm to solve sliding puzzles!
 
 ### Getting Started
 1. Make sure you have [Python 3.6](https://www.python.org/) installed.
