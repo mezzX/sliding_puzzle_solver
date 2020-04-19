@@ -1,6 +1,7 @@
 import random
 import copy
 import numpy as np
+from dataframe import Graph
 
 def mk_string(board):
     '''
@@ -22,18 +23,14 @@ def mk_string(board):
 
 class PuzzleSolver():
     def __init__(self, size):
-        '''
-        Initialize parameters and creates solution board.
-
-        Params
-        ======
-            size (int): Number of pieces in the grid along 1 axis.
-        '''
 
         self.size = size
-        self.frontier = {} # Dict of states that have been expanded into but not yet explored
-        self.explored = {} # Dict of states that have already been explored
+        self.frontier = Graph()
+        self.num_explored = 0
+        self.nodes = set()
+        self.last_explored = None
         self.mk_answer()
+
 
     def mk_answer(self):
         '''
@@ -49,64 +46,8 @@ class PuzzleSolver():
                 num += 1
 
         self.answer[-1][-1] = 0
+        self.answer_str = mk_string(self.answer)
 
-    def import_puzzle(self, state):
-        '''
-        Converts the current board state from the GUI to a 2d np.array and adds it to the frontier. 
-        We use the current location to figure out where in the np.array the value will go.
-        We use the correct location to figure out the value to input into the np.array
-        
-        Params
-        ======
-            state(list): A list containing all the tile objects
-        '''
-        self.puzzle = np.zeros((self.size, self.size))
-        for tile in state.tiles:
-            # current tile position
-            c_loc = tile.pos
-            # correct tile position
-            r_loc = tile.cor_pos
-            self.puzzle[c_loc[0]][c_loc[1]] = self.answer[r_loc[0]][r_loc[1]]
-        '''
-        Data structure for the frontier and explored is as follows:
-        frontier[key] = [Estimated Score, [Moves Taken], board]
-        key(str) : A string representation of the current board
-        Estimated Score(int) : The estimated path cost remaining to the goal 
-                               using the Manhattan Distance Heuristic
-        Moves Taken(list) : The moves taken to get the current board state from the
-                            original state. The lenght of the list is used to 
-                            calculate the path cost so far
-        '''
-        self.frontier[mk_string(self.puzzle)] = [self.score_board(self.puzzle), [], self.puzzle]
-
-    def shuffle(self, n, seed):
-        '''
-        Returns a random tile order by taking n number of random actions starting from the solution board.
-        prev_action is used to make sure that no 2 consecutive moves cancel each other out.
-        
-        Params
-        ======
-            n(int) : The number of random moves to generate before returning.
-            seed(int) : The seed used for shuffling the board. Only used if > 0.
-        '''
-        
-        if seed > 0:
-            random.seed(seed)
-        prev_action = None
-        board = self.answer
-        tile_order = []
-        for _ in range(n):
-            actions = self.get_actions(board)
-            if prev_action in actions:
-                actions.pop(actions.index(prev_action))
-            action = random.choice(actions)
-            prev_action = action
-            board = self.sim_board(board, action)
-
-        for i in np.nditer(board):
-            tile_order.append(int(i))
-
-        return tile_order
 
     def find_gap(self, board):
         '''
@@ -123,55 +64,6 @@ class PuzzleSolver():
         col = coord % self.size
         self.gap = (row, col)
 
-    def get_actions(self, board):
-        '''
-        Finds all valid actions from the given board state
-        ex. 1. 2. 3.
-            4. 5. 0. = ['Right', 'Down', 'Up']
-            7. 8. 6.
-
-        Params
-        ======
-            board(np.array)  : The board to find the valid actions of
-        '''
-        actions = []
-        self.find_gap(board)
-        if self.gap[1] > 0:
-            actions.append('Right')
-
-        if self.gap[0] > 0:
-            actions.append('Down')
-
-        if self.gap[1] < self.size - 1:
-            actions.append('Left')
-
-        if self.gap[0] < self.size - 1:
-            actions.append('Up')
-
-        return actions
-
-    def score_board(self, board):
-        '''
-        This is the heuristic function used to estimate the remaining path cost for the given board.
-        For each tile we calculate the Manhattan Distance between the current location and correct location.
-        Distance = sum(|xi1 - xi2| + |yi1 - yi2|)
-            where : x1 = Current tile position
-                    x2 = Correct tile position
-            for i = 0 : self.size**2
-
-        Params
-        ======
-        board(np.array) : The board to calculate the score for
-        '''
-        scores = []
-        for i in range(self.size**2):
-            c_loc = np.where(board == i)
-            r_loc = np.where(self.answer == i)
-            y = abs(c_loc[0] - r_loc[0])
-            x = abs(c_loc[1] - r_loc[1])
-            scores.append(y + x)
-
-        return np.sum(scores)
 
     def sim_board(self, board, action):
         '''
@@ -206,44 +98,32 @@ class PuzzleSolver():
 
         return new_board
 
-    def expand(self, key):
+
+    def score_board(self, board):
         '''
-        Expanding the given board by taking all valid actions not yet taken
-        
-        Data structure for the frontier and explored is as follows:
-        explored[key] = [Estimated Score, [Moves Taken], board]
-        key(str) : A string representation of the current board
-        Estimated Score(int) : The estimated path cost remaining to the goal 
-                               using the Manhattan Distance Heuristic
-        Moves Taken(list) : The moves taken to get the current board state from the
-                            original state. The lenght of the list is used to 
-                            calculate the path cost so far
-        
+        This is the heuristic function used to estimate the remaining path cost for the given board.
+        For each tile we calculate the Manhattan Distance between the current location and correct location.
+        Distance = sum(|xi1 - xi2| + |yi1 - yi2|)
+            where : x1 = Current tile position
+                    x2 = Correct tile position
+            for i = 0 : self.size**2
+
         Params
         ======
-        key(str) : The string representation of the board being expanded
+        board(np.array) : The board to calculate the score for
         '''
-        # Getting the np.array of the board being expanded.
-        board = self.frontier[key][2]
-        # Getting all the valid actions for the given board
-        actions = self.get_actions(board)
-        # Iterating through all the valid actions and creating a new board for each action.
-        for action in actions:
-            new_board = self.sim_board(board, action)
-            new_board_key = mk_string(new_board)
-            # Checking that the new board hasn't been already expanded into before proceeding.
-            if new_board_key not in self.frontier.keys() and new_board_key not in self.explored.keys():
-                score = self.score_board(new_board)
-                move_list = copy.copy(self.frontier[key][1])
-                # Adding the new board to the frontier
-                self.frontier[new_board_key] = [score, move_list, new_board]
-                self.frontier[new_board_key][1].append(action)
-        # Adding the expanded board to explored and removing it from the frontier
-        if key not in self.explored.keys():
-            self.explored[key] = copy.deepcopy(self.frontier[key])
-        del self.frontier[key]
+        scores = []
+        for i in range(self.size**2):
+            c_loc = np.where(board == i)
+            r_loc = np.where(self.answer == i)
+            y = abs(c_loc[0] - r_loc[0])
+            x = abs(c_loc[1] - r_loc[1])
+            scores.append(y + x)
 
-    def get_total_cost(self, entry):
+        return np.sum(scores)
+
+
+    def get_total_cost(self, move_list, est_score):
         '''
         Here we will calculate the total cost of the give Path
         Cost = G + H
@@ -258,20 +138,123 @@ class PuzzleSolver():
                           G = len(entry[1])
                           H = entry[0]
         '''
-        g = len(entry[1])
-        h = int(entry[0])
+        g = len(move_list)
+        h = int(est_score)
+
         return g + h
 
-    def explore(self):
+
+    def shuffle(self, n, seed):
         '''
-        We explore the state space by expanding a board in the frontier
-        that has the lowest total cost. 
+        Returns a random tile order by taking n number of random actions starting from the solution board.
+        prev_action is used to make sure that no 2 consecutive moves cancel each other out.
+        
+        Params
+        ======
+            n(int) : The number of random moves to generate before returning.
+            seed(int) : The seed used for shuffling the board. Only used if > 0.
         '''
-        boards = {}
-        for board in self.frontier.keys():
-            cost = self.get_total_cost(self.frontier[board])
-            boards[board] = cost
-        self.expand(min(boards))
+        if seed > 0:
+            random.seed(seed)
+        prev_action = None
+        board = self.answer
+        tile_order = []
+        for _ in range(n):
+            actions = self.get_actions(board)
+            if prev_action in actions:
+                actions.pop(actions.index(prev_action))
+            action = random.choice(actions)
+            prev_action = action
+            board = self.sim_board(board, action)
+
+        for i in np.nditer(board):
+            tile_order.append(int(i))
+
+        return tile_order
+
+
+    def get_actions(self, board):
+        '''
+        Finds all valid actions from the given board state
+        ex. 1. 2. 3.
+            4. 5. 0. = ['Right', 'Down', 'Up']
+            7. 8. 6.
+
+        Params
+        ======
+            board(np.array)  : The board to find the valid actions of
+        '''
+        actions = []
+        self.find_gap(board)
+        if self.gap[1] > 0:
+            actions.append('Right')
+
+        if self.gap[0] > 0:
+            actions.append('Down')
+
+        if self.gap[1] < self.size - 1:
+            actions.append('Left')
+
+        if self.gap[0] < self.size - 1:
+            actions.append('Up')
+
+        return random.sample(actions, len(actions))
+
+
+    def expand(self, node):
+        board = node.state
+        actions = self.get_actions(board)
+        for action in actions:
+            new_board = self.sim_board(board, action)
+            new_board_key = mk_string(new_board)
+
+            if new_board_key not in self.nodes:
+                score = self.score_board(new_board)
+                move_list = copy.copy(node.moves)
+                move_list.append(action)
+                total_score = self.get_total_cost(move_list, score)
+                self.frontier.add_node(new_board, total_score, move_list)
+
+            self.nodes.add(new_board_key)
+
+        self.last_explored = node
+        self.num_explored += 1
+
+
+    def import_puzzle(self, state):
+        '''
+        Converts the current board state from the GUI to a 2d np.array and adds it to the frontier. 
+        We use the current location to figure out where in the np.array the value will go.
+        We use the correct location to figure out the value to input into the np.array
+        
+        Params
+        ======
+            state(list): A list containing all the tile objects
+        '''
+        self.puzzle = np.zeros((self.size, self.size))
+        for tile in state.tiles:
+            # current tile position
+            c_loc = tile.pos
+            # correct tile position
+            r_loc = tile.cor_pos
+            self.puzzle[c_loc[0]][c_loc[1]] = self.answer[r_loc[0]][r_loc[1]]
+        '''
+        Data structure for the frontier and explored is as follows:
+        frontier[key] = [Estimated Score, [Moves Taken], board]
+        key(str) : A string representation of the current board
+        Estimated Score(int) : The estimated path cost remaining to the goal 
+                               using the Manhattan Distance Heuristic
+        Moves Taken(list) : The moves taken to get the current board state from the
+                            original state. The lenght of the list is used to 
+                            calculate the path cost so far
+        '''
+        puzzle_str = mk_string(self.puzzle)
+        score = self.score_board(self.puzzle)
+        move_list = []
+        total_score = self.get_total_cost(move_list, score)
+        self.frontier.add_node(self.puzzle, total_score, move_list)
+        self.last_explored = self.frontier.find_min()
+
 
     def solve(self, state):
         '''
@@ -283,10 +266,14 @@ class PuzzleSolver():
         ======
             state(list): A list containing all the tile objects
         '''
+        random.seed(123)
         self.import_puzzle(state)
         while True:
-            if mk_string(self.answer) in self.explored.keys():
-                return self.explored[mk_string(self.answer)][1]
+            if self.answer_str == mk_string(self.last_explored.state):
+                print('solved')
+                return self.last_explored.moves
             else:
-                self.explore()
-                print("{} nodes in the frontier and {} nodes explored".format(len(self.frontier.keys()), len(self.explored.keys())))
+                self.expand(self.frontier.extract_min())
+                print("{} nodes in the frontier and {} nodes explored".format(
+                    self.frontier.total_nodes, self.num_explored))
+                #print("Last State Explored: {}".format(self.last_explored))
