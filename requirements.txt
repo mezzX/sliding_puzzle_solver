@@ -3,5 +3,5 @@ mkl-fft==1.0.10
 mkl-random==1.0.2
 numpy==1.22.0
 olefile==0.46
-Pillow==9.3.0
+Pillow==10.3.0
 wincertstore==0.2
